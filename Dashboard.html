@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ham Radio Dashboard - Boone County Edition</title>
+    <title>MyHamDashboard</title>
     <style>
-        /* GLOBAL RESET */
+        /* =============================
+        1. GLOBAL LAYOUT STYLES 
+        =============================
+        */
         html, body {
             margin: 0;
             padding: 0;
-            height: 100%;
-            overflow: hidden; 
+            height: 100%; /* Forces full viewport height */
+            overflow: hidden; /* Prevents scrollbars on the main page */
             font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #1a1a1a; 
             color: #f0f0f0;
@@ -23,11 +26,16 @@
             position: relative;
         }
 
-        /* GRID LAYOUT (4x3) */
+        /* =============================
+        2. GRID SYSTEM (4x3 Layout)
+        =============================
+        */
         #grid-container {
-            flex-grow: 1; 
+            flex-grow: 1; /* Takes up all space not used by the ticker */
             display: grid;
+            /* Creates 4 equal columns */
             grid-template-columns: repeat(4, 1fr);
+            /* Creates 3 equal rows */
             grid-template-rows: repeat(3, 1fr);
             width: 100%;
             height: 100%;
@@ -37,14 +45,17 @@
         .grid-item {
             width: 100%;
             height: 100%;
-            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle grid lines */
             box-sizing: border-box; 
             background-color: #000;
             overflow: hidden; 
             position: relative;
         }
 
-        /* CONTENT STYLING */
+        /* =============================
+        3. CONTENT STYLING (Images/Video)
+        =============================
+        */
         .grid-item img, 
         .grid-item video,
         .grid-item iframe { 
@@ -52,109 +63,80 @@
             height: 100%;
             display: block;
             border: none;
-            object-fit: cover; /* Fills the box */
+            /* 'cover' ensures the image fills the box without stretching (may crop edges) */
+            object-fit: cover; 
         }
 
-        /* Exceptions for specific types */
+        /* Special rules for specific content types */
         .grid-item iframe { object-fit: fill; }
+        /* Class to prevent cropping on text-heavy images */
         .grid-item img.contain-fit { object-fit: contain; }
 
-        /* ----------------------------------------------------- */
-        /* SCROLLING TICKER STYLES (TRANSPARENT & FLOATING)      */
-        /* ----------------------------------------------------- */
+        /* =============================
+        4. BOTTOM TICKER & MENU BAR
+        =============================
+        */
         #ticker-wrap {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 45px;
+            height: 30px; 
             background-color: rgba(0, 0, 0, 0.75); /* Transparent Black */
             border-top: 1px solid #555;
-            overflow: hidden;
+            overflow: visible; /* Allows the menu to pop UP out of the box */
             white-space: nowrap;
-            z-index: 9998; /* Below the menu, above grid */
+            z-index: 9999; /* Ensures it sits on top of images */
             display: flex;
             align-items: center;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px); /* Blurs the image behind the bar */
         }
 
+        /* The "Menu" Button Styles */
         #ticker-title {
-            background-color: #b00; /* Red label for Alerts */
+            background-color: rgba(0, 0, 0, 0.75); 
             color: white;
             padding: 0 15px;
             height: 100%;
             display: flex;
             align-items: center;
             font-weight: bold;
-            font-size: 0.9em;
-            z-index: 2;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+            font-size: 0.85em; 
+            z-index: 10;
+            border-right: 1px solid #555; 
+            cursor: pointer; 
+            position: relative; 
+            transition: background-color 0.3s;
         }
 
-        #ticker-move {
-            display: inline-block;
-            padding-left: 100%;
-            animation: scroll-left 30s linear infinite;
-            color: #fff;
-            font-size: 1.1em;
-            font-weight: 500;
+        #ticker-title:hover {
+            background-color: #333; 
         }
 
-        @keyframes scroll-left {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
-        }
-
-        /* ----------------------------------------------------- */
-        /* NEW DROP DOWN MENU STYLES                             */
-        /* ----------------------------------------------------- */
-        .menu-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999; /* Highest layer */
-        }
-
-        /* The Circle Button */
-        .menu-btn {
-            background-color: rgba(0, 0, 0, 0.4); /* Transparent dark */
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50%; /* Makes it a circle */
-            width: 45px;
-            height: 45px;
-            font-size: 24px; /* Size of the dots */
-            line-height: 45px;
-            text-align: center;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
-            backdrop-filter: blur(3px);
-            user-select: none;
-        }
-
-        .menu-btn:hover {
-            background-color: rgba(0, 0, 0, 0.9); /* Solid on hover */
-            transform: scale(1.1);
-        }
-
-        /* The Dropdown Content (Hidden by default) */
+        /* =============================
+        5. POPUP DROPDOWN MENU
+        =============================
+        */
         .dropdown-content {
-            display: none;
+            display: none; /* Hidden by default */
             position: absolute;
-            right: 0;
-            top: 55px;
+            bottom: 30px; /* Positions it exactly above the bar */
+            left: 0;
             background-color: rgba(0, 0, 0, 0.9);
-            min-width: 180px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
-            border-radius: 8px;
+            min-width: 200px;
+            box-shadow: 0px -4px 16px rgba(0,0,0,0.5);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
             overflow: hidden;
             border: 1px solid #444;
+            border-bottom: none;
+            backdrop-filter: blur(5px);
         }
 
-        /* Links inside the dropdown */
+        /* Menu Links */
         .dropdown-content a {
             color: #f0f0f0;
-            padding: 12px 16px;
+            padding: 10px 16px;
             text-decoration: none;
             display: block;
             font-size: 0.9em;
@@ -162,19 +144,35 @@
             transition: background 0.2s;
         }
 
-        .dropdown-content a:last-child {
-            border-bottom: none;
-        }
-
         .dropdown-content a:hover {
-            background-color: #b00; /* Red hover effect */
+            background-color: #b00; /* Red highlight */
         }
 
-        /* Show the dropdown menu on hover */
-        .menu-container:hover .dropdown-content {
+        /* CSS Magic: Show menu when hovering over the title */
+        #ticker-title:hover .dropdown-content {
             display: block;
         }
 
+        /* =============================
+        6. SCROLLING ANIMATION
+        =============================
+        */
+        #ticker-move {
+            display: inline-block;
+            padding-left: 100%; /* Start off-screen */
+            /* Adjust '30s' to make the scroll faster or slower */
+            animation: scroll-left 30s linear infinite;
+            color: #fff;
+            font-size: 0.95em; 
+            font-weight: 500;
+            line-height: 30px; 
+        }
+
+        @keyframes scroll-left {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        
     </style>
 </head>
 <body>
@@ -182,42 +180,60 @@
     <div id="page-container">
         <main id="grid-container"></main>
         
-        <div class="menu-container">
-            <div class="menu-btn">&#8942;</div>
-            <div class="dropdown-content">
-                <a href="https://www.weather.gov/" target="_blank">NWS Home</a>
-                <a href="https://www.arrl.org/" target="_blank">ARRL</a>
-                <a href="https://www.qrz.com/" target="_blank">QRZ.com</a>
-                <a href="javascript:location.reload()">Refresh Dashboard</a>
-            </div>
-        </div>
-
         <div id="ticker-wrap">
-            <div id="ticker-title">BOONE COUNTY WX</div>
+            <div id="ticker-title">
+                Menu &#9650; 
+                
+                <div class="dropdown-content">
+                    <a href="https://www.weather.gov/" target="_blank">NWS Home</a>
+                    <a href="https://mygmrs.com/" target="_blank">MyGMRS</a>
+                    <a href="https://www.qrz.com/" target="_blank">QRZ.com</a>
+                    
+                    <a href="https://www.radioreference.com/db/browse/stid/21" target="_blank">RadioReference KY</a>
+                    <a href="https://www.repeaterbook.com/repeaters/index.php?state_id=21" target="_blank">RepeaterBook KY</a>
+                    
+                    <a href="javascript:location.reload()">Refresh Dashboard</a>
+                </div>
+            </div>
+
             <div id="ticker-move" id="ticker-content">Loading Weather Data...</div>
         </div>
     </div>
 
     <script>
-        /* 1. DEFINE CONTENT URLs */
+        /* ========================================================================
+        CONFIGURATION: DASHBOARD CONTENT
+        12 URLs that populate the 4x3 grid.
+        - Ends in .mp4 -> Renders as <video>
+        - Contains 'solarpic' -> Renders as <img> (Specific for HamQSL)
+        - All others -> Render as <img>
+        ========================================================================
+        */
         const contentUrls = [
+            // ROW 1
             'https://radar.weather.gov/ridge/standard/CONUS_loop.gif', 
-            'https://radar.weather.gov/ridge/standard/KNQA_loop.gif', 
+            'https://graphical.weather.gov/images/conus/T1_conus.png', // Temperature Map
             'https://services.swpc.noaa.gov/images/animations/d-rap/global/d-rap/latest.png', 
             'https://services.swpc.noaa.gov/images/swx-overview-large.gif', 
             
+            // ROW 2
             'https://cdn.star.nesdis.noaa.gov/GOES16/GLM/SECTOR/can/EXTENT3/GOES16-CAN-EXTENT3-1125x560.gif', 
             'https://cdn.star.nesdis.noaa.gov/GOES16/GLM/SECTOR/cgl/EXTENT3/GOES16-CGL-EXTENT3-600x600.gif', 
             'https://services.swpc.noaa.gov/experimental/images/aurora_dashboard/tonights_static_viewline_forecast.png', 
             'https://www.blitzortung.org/en/Images/image_b_ny.png', 
             
+            // ROW 3
             'https://www.trimarc.org/images/milestone/CCTV_06_275_0089.jpg', 
             'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/can/13/GOES16-CAN-13-1125x560.gif', 
             'https://himawari8.nict.go.jp/movie/720/20240611_pifd.mp4',
-            'https://www.hamqsl.com/solar101vhfpic.php' 
+            'https://www.hamqsl.com/solar101vhfpic.php' // Direct image generator link
         ];
 
-        /* 2. GRID BUILDER LOGIC */
+        /* ========================================================================
+        LOGIC: GRID BUILDER
+        Iterates through the URLs and creates the HTML elements
+        ========================================================================
+        */
         function getContentType(url) {
             const lowerUrl = url.toLowerCase();
             if (lowerUrl.endsWith('.mp4')) return 'video';
@@ -241,7 +257,9 @@
                 } else {
                     el = document.createElement('img');
                     el.src = url;
+                    // Special handling for HamQSL to prevent cropping text
                     if(url.includes('hamqsl')) el.classList.add('contain-fit'); 
+                    // Hide image if link is broken
                     el.onerror = function() { this.style.display='none'; }; 
                 }
                 
@@ -250,8 +268,15 @@
             });
         }
 
-        /* 3. WEATHER TICKER LOGIC */
+        /* ========================================================================
+        LOGIC: WEATHER TICKER
+        Fetches NWS CAP Alerts via rss2json proxy.
+        Customize the RSS_URL variable for different zones.
+        Zone ID: KYZ091 (Boone County, KY)
+        ========================================================================
+        */
         const RSS_URL = "https://alerts.weather.gov/cap/wwaatmget.php?x=KYZ091&y=0&a=0";
+        // Using public proxy to avoid CORS errors when running locally
         const API_URL = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
 
         function updateTicker() {
@@ -261,13 +286,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'ok' && data.items.length > 0) {
+                    // WE HAVE ACTIVE ALERTS
                     let alertText = "";
                     data.items.forEach(item => {
                         alertText += " ⚠️ " + item.title + " ";
                     });
                     ticker.innerText = alertText + " (Source: NWS) ";
                 } else {
-                    ticker.innerText = "NO ACTIVE WEATHER ALERTS FOR BOONE COUNTY, KY • 73s WSGA832";
+                    // NO ACTIVE ALERTS - Generic Message
+                    ticker.innerText = "NO ACTIVE WEATHER ALERTS FOR BOONE COUNTY, KY";
                 }
             })
             .catch(error => {
@@ -276,9 +303,11 @@
             });
         }
 
+        // Initialize functionality when page loads
         document.addEventListener('DOMContentLoaded', () => {
             buildGrid();
             updateTicker();
+            // Update ticker every 15 minutes (900,000 ms)
             setInterval(updateTicker, 900000);
         });
     </script>
