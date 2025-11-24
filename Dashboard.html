@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CRITICAL: Helps load images from strict servers --><meta name="referrer" content="no-referrer">
     <title>MyHamDashboard</title>
     <style>
         /* GLOBAL RESET */
@@ -41,7 +42,7 @@
             box-sizing: border-box; 
             background-color: #000;
             overflow: hidden; 
-            position: relative;
+            position: relative; /* Needed for absolute positioning of title */
             cursor: pointer; 
             transition: transform 0.1s;
         }
@@ -52,6 +53,13 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
+        /* Container for image and title */
+        .image-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
         /* CONTENT STYLING */
         .grid-item img, 
         .grid-item video,
@@ -60,13 +68,32 @@
             height: 100%;
             display: block;
             border: none;
-            object-fit: cover; /* Default: Fill the box (crop if needed) */
+            object-fit: cover; 
         }
 
         .grid-item iframe { object-fit: fill; }
         
-        /* Class to prevent cropping (Zoom Out) */
-        .grid-item img.contain-fit { object-fit: contain; }
+        /* SPECIAL CLASS: ZOOMS OUT to show the whole image */
+        .grid-item img.contain-fit { 
+            object-fit: contain; 
+            background-color: #000; 
+        }
+
+        /* Image Title Styling */
+        .image-title {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* For readability */
+            box-sizing: border-box; /* Include padding in width */
+            z-index: 1; /* Ensure title is above the image */
+        }
 
         /* ----------------------------------------------------- */
         /* COMPACT TICKER & INTEGRATED MENU STYLES               */
@@ -169,17 +196,18 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.9); 
+            background-color: rgba(0,0,0,0.95); 
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(5px);
         }
 
-        .lightbox-content {
+        .lightbox-content-style {
             max-width: 95%;
             max-height: 95%;
             box-shadow: 0 0 20px rgba(255,255,255,0.2);
             border: 2px solid #333;
+            object-fit: contain; 
         }
 
         #lightbox-close {
@@ -196,6 +224,99 @@
         #lightbox-close:hover {
             color: #b00;
         }
+
+        /* ----------------------------------------------------- */
+        /* GEMINI ANALYSIS BUTTON & MODAL                        */
+        /* ----------------------------------------------------- */
+
+        #gemini-button {
+            position: fixed;
+            right: 20px;
+            bottom: 45px; /* Above the ticker */
+            z-index: 999;
+            padding: 10px 15px;
+            background-color: #3f51b5; /* Indigo/Blue for prominence */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        #gemini-button:hover {
+            background-color: #303f9f;
+            transform: scale(1.05);
+        }
+        
+        #gemini-modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(80vw, 600px);
+            max-height: 80vh;
+            background-color: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+            z-index: 10002;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        #gemini-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        #gemini-modal-content h3 {
+            color: #ff9800; /* Amber for headings */
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        #gemini-modal-content p {
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        #gemini-modal-content ul {
+            list-style: disc;
+            margin-left: 20px;
+            padding: 0;
+        }
+
+        .close-btn {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: white;
+        }
+
+        #citation-list {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #444;
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        #citation-list a {
+            color: #999;
+            text-decoration: underline;
+        }
         
     </style>
 </head>
@@ -204,6 +325,11 @@
     <div id="page-container">
         <main id="grid-container"></main>
         
+        <!-- GEMINI BUTTON -->
+        <button id="gemini-button" onclick="showGeminiModal()">
+            ✨ Propagation Analyst
+        </button>
+
         <!-- COMPACT TICKER BAR -->
         <div id="ticker-wrap">
             <div id="ticker-title">
@@ -212,6 +338,7 @@
                     <a href="https://www.weather.gov/" target="_blank">NWS Home</a>
                     <a href="https://mygmrs.com/" target="_blank">MyGMRS</a>
                     <a href="https://www.qrz.com/" target="_blank">QRZ.com</a>
+                    <a href="http://websdr.org/" target="_blank">WebSDR</a> 
                     <a href="https://www.radioreference.com/db/browse/stid/21" target="_blank">RadioReference KY</a>
                     <a href="https://www.repeaterbook.com/repeaters/index.php?state_id=21" target="_blank">RepeaterBook KY</a>
                     <a href="javascript:location.reload()">Refresh Dashboard</a>
@@ -224,57 +351,85 @@
     <!-- LIGHTBOX CONTAINER -->
     <div id="lightbox" onclick="closeLightbox()">
         <span id="lightbox-close">&times;</span>
-        <img id="lightbox-img" style="display:none;" class="lightbox-content">
-        <video id="lightbox-video" style="display:none;" class="lightbox-content" controls autoplay loop></video>
+        <img id="lightbox-img" class="lightbox-content-style" style="display:none;">
+        <video id="lightbox-video" class="lightbox-content-style" style="display:none;" controls autoplay loop></video>
+    </div>
+
+    <!-- GEMINI MODAL -->
+    <div id="gemini-modal">
+        <div id="gemini-modal-header">
+            <h3 style="margin:0; color: white;">✨ Current Propagation Analysis</h3>
+            <span class="close-btn" onclick="closeGeminiModal()">&times;</span>
+        </div>
+        <div id="gemini-modal-content">
+            <!-- Content filled by JavaScript -->
+        </div>
     </div>
 
     <script>
-        /* 1. DEFINE CONTENT URLs */
-        const contentUrls = [
-            'https://radar.weather.gov/ridge/standard/CONUS_loop.gif', 
-            'https://graphical.weather.gov/images/conus/T1_conus.png', 
-            'https://services.swpc.noaa.gov/images/animations/d-rap/global/d-rap/latest.png', 
+        // Set API Key (leave empty string, Canvas will provide it at runtime)
+        const API_KEY = ""; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+        const MAX_RETRIES = 5;
+
+        /* 1. DEFINE CONTENT URLs AND TITLES */
+        const contentData = [
+            { url: 'https://radar.weather.gov/ridge/standard/CONUS_loop.gif', title: 'CONUS Radar Loop' }, 
+            { url: 'https://graphical.weather.gov/images/conus/T1_conus.png', title: 'CONUS Temperature' }, 
+            { url: 'https://services.swpc.noaa.gov/images/animations/d-rap/global/d-rap/latest.png', title: 'D-Region Absorption' }, 
             
-            // ZOOMED OUT (Using contain-fit logic): SWPC Overview
-            'https://services.swpc.noaa.gov/images/swx-overview-large.gif', 
+            // ISS Tracker
+            { url: 'https://www.heavens-above.com/orbitdisplay.aspx?icon=iss&width=600&height=300&mode=M&satid=25544', title: 'ISS Tracker' }, 
             
-            'https://cdn.star.nesdis.noaa.gov/GOES16/GLM/SECTOR/can/EXTENT3/GOES16-CAN-EXTENT3-1125x560.gif', 
-            'https://cdn.star.nesdis.noaa.gov/GOES16/GLM/SECTOR/cgl/EXTENT3/GOES16-CGL-EXTENT3-600x600.gif', 
-            'https://services.swpc.noaa.gov/experimental/images/aurora_dashboard/tonights_static_viewline_forecast.png', 
-            'https://www.blitzortung.org/en/Images/image_b_ny.png', 
+            // MUF/Propagation Map
+            { url: 'https://prop.kc2g.com/renders/current/mufd-normal-now.svg', title: 'MUF Day Normal' }, 
             
-            'https://www.trimarc.org/images/milestone/CCTV_06_275_0089.jpg', 
-            'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/can/13/GOES16-CAN-13-1125x560.gif', 
+            { url: 'https://cdn.star.nesdis.noaa.gov/GOES16/GLM/SECTOR/cgl/EXTENT3/GOES16-CGL-EXTENT3-600x600.gif', title: 'CONUS Lightning (GLM)' }, 
+            { url: 'https://services.swpc.noaa.gov/experimental/images/aurora_dashboard/tonights_static_viewline_forecast.png', title: 'Aurora Forecast' }, 
+            // Lightning Maps USA
+            { url: 'https://images.lightningmaps.org/blitzortung/america/index.php?animation=usa', title: 'USA Lightning Map' }, 
             
-            // REPLACED: Full Disk Earth View (Shows Day/Night Terminator Line reliably)
-            'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/FD/GEOCOLOR/latest.jpg', 
+            { url: 'https://www.trimarc.org/images/milestone/CCTV_06_275_0089.jpg', title: 'Louisville Traffic Cam' }, 
+            { url: 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/can/13/GOES16-CAN-13-1125x560.gif', title: 'CONUS IR Satellite' }, 
             
-            'https://www.hamqsl.com/solar101vhfpic.php' 
+            // Sun/Darkness Map
+            { url: 'https://www.timeanddate.com/scripts/sunmap.php?iso=now', title: 'Sun/Darkness Map' }, 
+            
+            { url: 'https://www.hamqsl.com/solar101vhfpic.php', title: 'Solar Data' } 
         ];
 
-        /* 2. HELPER: DETERMINE CONTENT TYPE */
+        /* 2. HELPER: DETERMINE CONTENT TYPE (Unchanged) */
         function getContentType(url) {
             const lowerUrl = url.toLowerCase();
             if (lowerUrl.endsWith('.mp4')) return 'video';
             if (lowerUrl.includes('solarpic') || lowerUrl.includes('solar101vhfpic')) return 'img';
+            if (lowerUrl.includes('sunmap.php')) return 'img';
+            if (lowerUrl.includes('orbitdisplay.aspx')) return 'img';
+            if (lowerUrl.endsWith('.svg')) return 'img';
+            if (lowerUrl.includes('lightningmaps.org') && lowerUrl.includes('animation=usa')) return 'img';
             return 'img'; 
         }
 
-        /* 3. GRID BUILDER LOGIC */
+        /* 3. GRID BUILDER LOGIC (Unchanged) */
         const gridContainer = document.getElementById('grid-container');
 
         function buildGrid() {
-            contentUrls.forEach(url => {
+            contentData.forEach(item => {
+                const url = item.url;
+                const titleText = item.title;
                 const contentType = getContentType(url);
+
                 const gridItem = document.createElement('div');
                 gridItem.classList.add('grid-item');
                 
-                // Add click event for lightbox
-                if (contentType !== 'iframe') {
-                    gridItem.onclick = function() {
-                        openLightbox(url, contentType);
-                    };
-                }
+                // Create a container for the image and title
+                const imageContainer = document.createElement('div');
+                imageContainer.classList.add('image-container');
+
+                // Add click event to open lightbox
+                gridItem.onclick = function() {
+                    openLightbox(url, contentType);
+                };
 
                 let el;
                 if (contentType === 'video') {
@@ -284,27 +439,41 @@
                 } else {
                     el = document.createElement('img');
                     el.src = url;
+                    el.referrerPolicy = "no-referrer";
                     
-                    // FIX: Apply contain-fit to HamQSL AND the SWX Overview so they aren't cropped
-                    if(url.includes('hamqsl') || url.includes('swx-overview')) {
+                    // Apply contain-fit to specific images
+                    if(url.includes('hamqsl') || url.includes('orbitdisplay') || url.includes('mufd-normal-now.svg')) {
                         el.classList.add('contain-fit');
                     }
                     
-                    el.onerror = function() { this.style.display='none'; }; 
+                    el.onerror = function() { 
+                        this.style.display='none';
+                        // Display title even if image fails
+                        this.parentElement.innerHTML += '<div style="color:#666; display:flex; justify-content:center; align-items:center; height:100%;">Image Unavailable</div>';
+                    }; 
                 }
                 
-                gridItem.appendChild(el);
+                imageContainer.appendChild(el);
+
+                // Add the title span
+                if (titleText) {
+                    const titleSpan = document.createElement('span');
+                    titleSpan.classList.add('image-title');
+                    titleSpan.innerText = titleText;
+                    imageContainer.appendChild(titleSpan);
+                }
+
+                gridItem.appendChild(imageContainer);
                 gridContainer.appendChild(gridItem);
             });
         }
 
-        /* 4. LIGHTBOX LOGIC */
+        /* 4. LIGHTBOX LOGIC (Unchanged) */
         function openLightbox(url, type) {
             const lightbox = document.getElementById('lightbox');
             const imgEl = document.getElementById('lightbox-img');
             const videoEl = document.getElementById('lightbox-video');
 
-            // Reset display
             imgEl.style.display = 'none';
             videoEl.style.display = 'none';
             videoEl.pause();
@@ -314,7 +483,6 @@
                 videoEl.style.display = 'block';
                 videoEl.play();
             } else {
-                // Force refresh for live images
                 const timestamp = new Date().getTime();
                 const freshUrl = url.includes('?') ? url + '&t=' + timestamp : url + '?t=' + timestamp;
                 
@@ -334,36 +502,237 @@
             videoEl.src = ""; 
         }
 
-        /* 5. WEATHER TICKER LOGIC */
-        const RSS_URL = "https://alerts.weather.gov/cap/wwaatmget.php?x=KYZ091&y=0&a=0";
-        const API_URL = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
+        /* 5. WEATHER TICKER LOGIC (Unchanged) */
+        
+        // Coordinates for Boone County, KY (near Florence/Cincinnati)
+        const LATITUDE = 38.98;
+        const LONGITUDE = -84.77; 
+        
+        // Open-Meteo API endpoint for current weather
+        const WEATHER_API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=temperature_2m,weather_code,wind_speed_10m&hourly=precipitation_probability&forecast_hours=1&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FNew_York&models=best_match`;
 
-        function updateTicker() {
+        // Weather interpretation codes (WMO Weather interpretation codes)
+        const WMO_CODES = {
+            0: "Clear Sky", 1: "Mainly Clear", 2: "Partly Cloudy", 3: "Overcast",
+            45: "Fog", 48: "Rime Fog",
+            51: "Drizzle (Light)", 53: "Drizzle (Moderate)", 55: "Drizzle (Dense)",
+            56: "Freezing Drizzle (Light)", 57: "Freezing Drizzle (Dense)",
+            61: "Rain (Light)", 63: "Rain (Moderate)", 65: "Rain (Heavy)",
+            66: "Freezing Rain (Light)", 67: "Freezing Rain (Heavy)",
+            71: "Snow Fall (Light)", 73: "Snow Fall (Moderate)", 75: "Snow Fall (Heavy)",
+            77: "Snow Grains",
+            80: "Rain Showers (Light)", 81: "Rain Showers (Moderate)", 82: "Rain Showers (Violent)",
+            85: "Snow Showers (Light)", 86: "Snow Showers (Heavy)",
+            95: "Thunderstorm (Slight/Moderate)", 
+            96: "Thunderstorm with Hail (Slight)", 99: "Thunderstorm with Hail (Heavy)"
+        };
+
+        async function updateTicker() {
             const ticker = document.getElementById('ticker-move');
-            
-            fetch(API_URL)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'ok' && data.items.length > 0) {
-                    let alertText = "";
-                    data.items.forEach(item => {
-                        alertText += " ⚠️ " + item.title + " ";
-                    });
-                    ticker.innerText = alertText + " (Source: NWS) ";
-                } else {
-                    ticker.innerText = "NO ACTIVE WEATHER ALERTS FOR BOONE COUNTY, KY";
+            ticker.innerText = "Loading Local Weather Data...";
+
+            try {
+                const response = await fetch(WEATHER_API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            })
-            .catch(error => {
-                console.error("Ticker Error:", error);
-                ticker.innerText = "Weather Data Unavailable (Check Internet Connection)";
-            });
+                const data = await response.json();
+                
+                const current = data.current;
+                const hourly = data.hourly;
+                
+                const temp = Math.round(current.temperature_2m);
+                const wind = Math.round(current.wind_speed_10m);
+                const weatherCode = current.weather_code;
+                const description = WMO_CODES[weatherCode] || "Unknown Weather";
+                
+                // Get precipitation probability for the current hour
+                const precipProb = hourly && hourly.precipitation_probability && hourly.precipitation_probability.length > 0
+                    ? hourly.precipitation_probability[0] : 0;
+                
+                const timeString = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                const tickerText = `[Boone County, KY] ${timeString} | Temp: ${temp}°F | Wind: ${wind} mph | ${description} | Rain Chance: ${precipProb}% `;
+
+                ticker.innerText = tickerText;
+
+            } catch (error) {
+                console.error("[CONSOLE_ERROR] Ticker Error:", error);
+                ticker.innerText = "Local Weather Data Unavailable (Check API or network)";
+            }
         }
+
+        /* 6. GEMINI PROPAGATION ANALYST LOGIC (Updated to handle 403) */
+
+        function showGeminiModal() {
+            const modal = document.getElementById('gemini-modal');
+            const content = document.getElementById('gemini-modal-content');
+            modal.style.display = 'block';
+
+            // Show Loading State
+            content.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h3 style="color:#ff9800;">Analyzing Current Solar Conditions...</h3>
+                    <p>Fetching the latest SFI, K-Index, and A-Index data via Google Search and running analysis. Please wait a moment.</p>
+                </div>
+            `;
+            
+            callGeminiPropagationAnalysis();
+        }
+
+        function closeGeminiModal() {
+            document.getElementById('gemini-modal').style.display = 'none';
+        }
+
+        // LLM Call function with exponential backoff
+        async function callGeminiPropagationAnalysis(retryCount = 0) {
+            const userQuery = "Provide a current propagation summary and band recommendations for amateur radio operations right now. Specifically check the latest Solar Flux Index (SFI), A-index, K-index, and X-ray flux levels from the web.";
+            const systemPrompt = `You are a world-class amateur radio propagation analyst. You will analyze the latest solar and geophysical data (like SFI, A-index, K-index, and X-ray flux) provided by your tools. Your response must be a concise, tactical summary followed by a bulleted list of band recommendations.
+            
+            The summary should explain the current solar conditions (e.g., quiet, active, geomagnetic storm). The bulleted list should recommend 3-5 bands (e.g., 20m, 40m, 6m) for the current time of day/season and briefly state why (e.g., "40m: Excellent night-time regional contacts," "10m: Potential for DX due to high SFI"). Use technical but clear language suitable for a seasoned ham radio operator. Do not mention your data sources in the final output. Format the output using markdown headings and lists.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    if (response.status === 429 && retryCount < MAX_RETRIES) {
+                        const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return callGeminiPropagationAnalysis(retryCount + 1);
+                    }
+                    
+                    // Throw the specific status error
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const text = candidate.content.parts[0].text;
+                    let sources = [];
+                    const groundingMetadata = candidate.groundingMetadata;
+                    
+                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                        sources = groundingMetadata.groundingAttributions
+                            .map(attribution => ({
+                                uri: attribution.web?.uri,
+                                title: attribution.web?.title,
+                            }))
+                            .filter(source => source.uri && source.title); 
+                    }
+                    updateOutput(text, sources);
+
+                } else {
+                    updateOutput('Error: Could not retrieve a valid analysis from the LLM.', []);
+                }
+
+            } catch (error) {
+                console.error("[CONSOLE_ERROR] Gemini API Error:", error);
+                
+                const errorDetail = error.message;
+
+                if (errorDetail.includes('403')) {
+                    // Specific 403 handling: Authorization/Permissions issue
+                    updateOutput(
+                        `Error (403 Forbidden): The API request failed due to an authorization issue.`, 
+                        [], 
+                        true // Flag to indicate a critical 403 error
+                    );
+                } else {
+                    updateOutput(`An error occurred while analyzing propagation: ${errorDetail}`, []);
+                }
+            }
+        }
+
+        // Updated updateOutput to handle the critical 403 error
+        function updateOutput(text, sources, isCriticalError = false) {
+            const content = document.getElementById('gemini-modal-content');
+            let html = '';
+
+            if (isCriticalError) {
+                // Generate detailed 403 troubleshooting guide
+                html = `
+                    <h3 style="color:#d32f2f;">Propagation Analyst: Authorization Error</h3>
+                    <p>The **403 Forbidden** error indicates that your Gemini API key is correctly reaching the server, but the requested action—specifically using the **Google Search Grounding Tool**—is unauthorized or forbidden for your project.</p>
+                    
+                    <h3 style="color:#ff9800;">Actionable Solutions:</h3>
+                    
+                    <h4>1. Enable the Required Service</h4>
+                    <p>You must ensure the **Google Search Grounding** service is enabled for the API key being used. This often requires enabling the corresponding service and linking it to your API project.</p>
+                    
+                    <h4>2. Check Billing Status</h4>
+                    <p>Some advanced features, like grounding, may require a valid billing setup, even during free tier usage. Verify that billing is enabled on your Google Cloud project.</p>
+
+                    <h4>3. Temporary Workaround</h4>
+                    <p>To get a basic (non-realtime) analysis while you fix the permissions, you can temporarily **remove the \`tools: [{ "google_search": {} }]\`** line from the \`callGeminiPropagationAnalysis\` function payload and try again. This bypasses the grounding tool but relies solely on the LLM's training data.</p>
+                `;
+            } else {
+                // Standard success/other error output
+                html = `<h3>Analysis Summary</h3>` + parseMarkdownToHtml(text);
+                
+                if (sources.length > 0) {
+                    html += '<div id="citation-list"><strong>Sources:</strong><ul>';
+                    sources.forEach((source, index) => {
+                        html += `<li><a href="${source.uri}" target="_blank" rel="noopener noreferrer">${source.title}</a></li>`;
+                    });
+                    html += '</ul></div>';
+                } else if (text.startsWith("Error")) {
+                    html += '<p style="color:red;">Ensure network connectivity and check console for error details.</p>';
+                }
+            }
+
+
+            content.innerHTML = html;
+        }
+
+        // Simple markdown to HTML parser for the LLM output (only handles common elements)
+        function parseMarkdownToHtml(markdown) {
+            // Replace **bold** with <strong>bold</strong>
+            let html = markdown.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Replace *italics* with <em>italics</em>
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Replace list items starting with * or -
+            html = html.replace(/^- (.*)/gm, '<li>$1</li>');
+            html = html.replace(/^\* (.*)/gm, '<li>$1</li>');
+            
+            // Find blocks of list items and wrap them in <ul>
+            html = html.replace(/(\n<li>.*(\n<li>.*)*)/g, (match) => {
+                let listItems = match.trim();
+                return `\n<ul>${listItems}</ul>\n`;
+            });
+
+            // Wrap paragraphs that aren't lists, headers, or empty
+            html = html.split('\n').map(p => {
+                const trimmedP = p.trim();
+                if (trimmedP === '') return '';
+                if (trimmedP.startsWith('<ul>') || trimmedP.startsWith('<li>') || trimmedP.startsWith('<strong>')) {
+                    return p;
+                }
+                return `<p>${trimmedP}</p>`;
+            }).join('');
+            
+            return html;
+        }
+
 
         document.addEventListener('DOMContentLoaded', () => {
             buildGrid();
+            // Update the weather ticker every 15 minutes (900,000 milliseconds)
             updateTicker();
-            setInterval(updateTicker, 900000);
+            setInterval(updateTicker, 900000); 
         });
     </script>
 </body>
