@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CRITICAL: Helps load images from strict servers --><meta name="referrer" content="no-referrer">
+    <!-- CRITICAL: Helps load images from strict servers -->
+<meta name="referrer" content="no-referrer">
     <title>MyHamDashboard</title>
     <style>
         /* GLOBAL RESET */
@@ -50,7 +51,7 @@
         .grid-item:hover {
             transform: scale(1.02);
             z-index: 5;
-            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
         }
 
         /* Container for image and title */
@@ -374,7 +375,8 @@
 
         /* 1. DEFINE CONTENT URLs AND TITLES */
         const contentData = [
-            { url: 'https://radar.weather.gov/ridge/standard/CONUS_loop.gif', title: 'CONUS Radar Loop' }, 
+            // UPDATED: Using the NWS CONUS Large Radar GIF
+            { url: 'https://radar.weather.gov/ridge/standard/CONUS-LARGE_loop.gif', title: 'CONUS Radar (Large)' }, 
             { url: 'https://graphical.weather.gov/images/conus/T1_conus.png', title: 'CONUS Temperature' }, 
             { url: 'https://services.swpc.noaa.gov/images/animations/d-rap/global/d-rap/latest.png', title: 'D-Region Absorption' }, 
             
@@ -384,7 +386,9 @@
             // MUF/Propagation Map
             { url: 'https://prop.kc2g.com/renders/current/mufd-normal-now.svg', title: 'MUF Day Normal' }, 
             
-            { url: 'https://cdn.star.nesdis.noaa.gov/GOES16/GLM/SECTOR/cgl/EXTENT3/GOES16-CGL-EXTENT3-600x600.gif', title: 'CONUS Lightning (GLM)' }, 
+            // CONUS Clean IR Satellite 
+            { url: 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/13/latest.jpg', title: 'CONUS Clean IR Satellite (NOAA)' }, 
+            
             { url: 'https://services.swpc.noaa.gov/experimental/images/aurora_dashboard/tonights_static_viewline_forecast.png', title: 'Aurora Forecast' }, 
             // Lightning Maps USA
             { url: 'https://images.lightningmaps.org/blitzortung/america/index.php?animation=usa', title: 'USA Lightning Map' }, 
@@ -407,10 +411,11 @@
             if (lowerUrl.includes('orbitdisplay.aspx')) return 'img';
             if (lowerUrl.endsWith('.svg')) return 'img';
             if (lowerUrl.includes('lightningmaps.org') && lowerUrl.includes('animation=usa')) return 'img';
+            if (lowerUrl.endsWith('.gif') || lowerUrl.endsWith('.jpg')) return 'img';
             return 'img'; 
         }
 
-        /* 3. GRID BUILDER LOGIC (Unchanged) */
+        /* 3. GRID BUILDER LOGIC (Ensuring robust cache busting) */
         const gridContainer = document.getElementById('grid-container');
 
         function buildGrid() {
@@ -438,7 +443,12 @@
                     el.autoplay = true; el.loop = true; el.muted = true; el.controls = false;
                 } else {
                     el = document.createElement('img');
-                    el.src = url;
+
+                    // Add cache-busting timestamp to the image source for forced refresh
+                    const timestamp = new Date().getTime();
+                    const freshUrl = url + (url.includes('?') ? '&' : '?') + 't=' + timestamp;
+                    el.src = freshUrl;
+                    
                     el.referrerPolicy = "no-referrer";
                     
                     // Apply contain-fit to specific images
@@ -483,6 +493,7 @@
                 videoEl.style.display = 'block';
                 videoEl.play();
             } else {
+                // This already handles cache busting for the lightbox view
                 const timestamp = new Date().getTime();
                 const freshUrl = url.includes('?') ? url + '&t=' + timestamp : url + '?t=' + timestamp;
                 
@@ -562,7 +573,7 @@
             }
         }
 
-        /* 6. GEMINI PROPAGATION ANALYST LOGIC (Updated to handle 403) */
+        /* 6. GEMINI PROPAGATION ANALYST LOGIC (Unchanged) */
 
         function showGeminiModal() {
             const modal = document.getElementById('gemini-modal');
